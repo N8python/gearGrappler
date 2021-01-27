@@ -250,7 +250,7 @@ function draw() {
             rope -= floor(random(1, 5));
         }
         if (grappleTick > 0) {
-            drawConstraint(grapple, min(grappleTick / grappleMax, 1));
+            drawGrapple(grapple, min(grappleTick / grappleMax, 1));
         }
         if (grappleTick >= grappleMax) {
             grapple.stiffness = 0.01;
