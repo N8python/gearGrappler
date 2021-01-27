@@ -5,6 +5,8 @@ let ground;
 let platforms = [];
 let gears = [];
 let collectibles = [];
+let emitters = [];
+let playerColor = [255, 255, 255];
 let upperBound = -350;
 Matter.use(MatterWrap);
 
@@ -16,44 +18,13 @@ function setup() {
     player = Composites.softBody(width / 2, 660, 4, 4, 1, 1, true, 5, {
         friction: 0.05,
         frictionStatic: 0.1,
-        /*plugin: {
-            wrap: {
-                min: {
-                    x: 0,
-                },
-                max: {
-                    x: 1000,
-                }
-            }
-        }*/
-    }); //Bodies.circle(width / 2, height / 2, 20);
+    });
+    /*player.bodies.forEach(body => {
+        body.ignoreGravity = true;
+    })*/
     ground = Bodies.rectangle(width / 2, height + 200, 10000, 400, {
         isStatic: true
     });
-    /*platforms.push(Bodies.rectangle(700, 100, 200, 50, {
-        isStatic: true
-    }));
-    platforms.push(Bodies.rectangle(150, 300, 200, 50, {
-        isStatic: true
-    }));
-    platforms.push(Bodies.rectangle(850, 500, 200, 50, {
-        isStatic: true
-    }));*/
-    /*gears.push(Gear({
-        x: width / 2,
-        y: height / 2,
-        size: 100
-    }))
-    gears.push(Gear({
-        x: 100,
-        y: 100,
-        size: 50
-    }))
-    gears.push(Gear({
-        x: 800,
-        y: 300,
-        size: 50
-    }))*/
     gears.push(Gear({
         x: width / 2,
         y: height / 2,
@@ -64,7 +35,7 @@ function setup() {
         const g = Gear({
             x: random(0, width),
             y: random(-height / 2, height / 2),
-            size: random(25, 50),
+            size: random(25, 75),
             speed: random(0.005, 0.02)
         })
         let toAdd = true;
@@ -77,19 +48,21 @@ function setup() {
             gears.push(g);
         }
     }
-    let r = ropeBoost({
-        x: random(0, width),
-        y: random(upperBound, upperBound - height / 2)
-    });
-    gears.forEach(gear => {
-        if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
-            r = ropeBoost({
-                x: random(0, width),
-                y: random(upperBound, upperBound - height / 2)
-            });
-        }
-    });
-    collectibles.push(r);
+    for (let i = 0; i < 3; i++) {
+        let r = ropeBoost({
+            x: random(0, width),
+            y: random(-height / 2, height / 2)
+        });
+        gears.forEach(gear => {
+            if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
+                r = ropeBoost({
+                    x: random(0, width),
+                    y: random(-height / 2, height / 2)
+                });
+            }
+        });
+        collectibles.push(r);
+    }
     World.add(engine.world, [player, ground, ...platforms]);
     gears.forEach(gear => {
         gear.add();
@@ -108,6 +81,7 @@ let playerScore = 0;
 let finalScore;
 let rope = 250;
 let oldPlayerY;
+let oldCollisions;
 const computeDiscount = () => {
     return (0.65 / (1 + Math.exp(-player.bodies[6].position.y / 2000))) * 1.7 + 0.35;
 }
@@ -118,8 +92,38 @@ function draw() {
     textAlign(CENTER);
     textSize(50);
     translate(0, height - 200 - player.bodies[6].position.y);
-    fill(255);
+    fill(...playerColor);
     drawPlayer(player);
+    const collisions = Detector.collisions(
+        [
+            ground, ...platforms, ...gears.flatMap(gear => gear.bodies())
+        ].flatMap(x => {
+            return player.bodies.map(y => [x, y]);
+        }), engine);
+    if (oldCollisions && collisions.length !== oldCollisions.length) {
+        collisions
+            .filter(collision => !oldCollisions.find(c => c.bodyA === collision.bodyA && c.bodyB === collision.bodyB))
+            .forEach(collision => {
+                emitters.push(Emitter({
+                    x: collision.bodyA.position.x,
+                    y: collision.bodyA.position.y,
+                    minSize: 1,
+                    maxSize: 1,
+                    distributionSize: 0,
+                    colors: [
+                        [255, 255, 255]
+                    ],
+                    rate: Infinity,
+                    startingParticles: 7,
+                    magnitude: 0.5,
+                    duration: 30,
+                    particleDuration: 30,
+                    display: "line",
+                    lineSize: 8
+                }));
+            })
+    }
+    oldCollisions = collisions;
     if (oldPlayerY) {
         playerScore += (oldPlayerY - player.bodies[6].position.y) / 10;
     }
@@ -139,24 +143,53 @@ function draw() {
     //drawVertices(player);
     fill(200);
     drawVertices(ground);
+    collectibles.forEach((collectible, i) => {
+        noStroke();
+        fill(collectible.color.concat(65));
+        circle(collectible.x, collectible.y, collectible.size * 1.75);
+        fill(collectible.color.concat(125));
+        circle(collectible.x, collectible.y, collectible.size * 1.5);
+        fill(collectible.color.concat(200));
+        circle(collectible.x, collectible.y, collectible.size * 1.25);
+        collectible.draw();
+        stroke(255);
+        player.bodies.some(body => {
+            if (dist(collectible.x, collectible.y, body.position.x, body.position.y) < (body.circleRadius + collectible.size) / 1.5) {
+                collectible.collect();
+                emitters.push(Emitter({
+                    x: collectible.x,
+                    y: collectible.y,
+                    minSize: 1,
+                    maxSize: 1,
+                    distributionSize: 0,
+                    colors: [
+                        collectible.color
+                    ],
+                    rate: Infinity,
+                    startingParticles: 15,
+                    magnitude: 1.5,
+                    duration: 30,
+                    particleDuration: 30,
+                    display: "line",
+                    lineSize: 8
+                }));
+                collectibles.splice(i, true);
+                return true;
+            }
+        })
+    });
     platforms.forEach(platform => {
+        fill(200);
         drawVertices(platform);
     });
     gears.forEach(gear => {
-        if (dist(player.bodies[6].position.x, player.bodies[6].position.y, gear.x, gear.y) < 1500) {
+        if (abs(gear.y - player.bodies[6].position.y) < height * 1.5) {
             gear.draw();
             gear.turn();
         }
     });
-    let toRemove = [];
-    collectibles.forEach((collectible, i) => {
-        collectible.draw();
-        player.bodies.forEach(body => {
-            if (dist(collectible.x, collectible.y, body.position.x, body.position.y) < (body.circleRadius + collectible.size) / 1.5) {
-                collectible.collect();
-                collectibles.splice(i, true);
-            }
-        })
+    emitters.forEach(emitter => {
+        emitter.draw();
     });
     if (rope <= 0 && !finalScore) {
         finalScore = playerScore;
@@ -232,7 +265,7 @@ function draw() {
                 x: random(0, width),
                 y: random(upperBound, upperBound - height / 2),
                 size: random(25, 50),
-                speed: random(0.005, 0.02)
+                speed: random() > 0.1 ? random(0.005, 0.02) : random(0.075, 0.15)
             })
             let toAdd = true;
             gears.forEach(gear => {
@@ -245,7 +278,14 @@ function draw() {
                 gears.push(g);
             }
         }
-        if (random() < 0.5 * computeDiscount()) {
+        if (random() < 0.25) {
+            const r = Bodies.rectangle(random(0, width), random(upperBound, upperBound - height / 2), random(150, 250), 50, {
+                isStatic: true
+            });
+            World.add(engine.world, r);
+            platforms.push(r);
+        }
+        if (random() < 2 * computeDiscount()) {
             let r = ropeBoost({
                 x: random(0, width),
                 y: random(upperBound, upperBound - height / 2)
@@ -253,6 +293,36 @@ function draw() {
             gears.forEach(gear => {
                 if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
                     r = ropeBoost({
+                        x: random(0, width),
+                        y: random(upperBound, upperBound - height / 2)
+                    });
+                }
+            });
+            collectibles.push(r);
+        }
+        if (random() < 2 * computeDiscount()) {
+            let r = jumpBoost({
+                x: random(0, width),
+                y: random(upperBound, upperBound - height / 2)
+            });
+            gears.forEach(gear => {
+                if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
+                    r = jumpBoost({
+                        x: random(0, width),
+                        y: random(upperBound, upperBound - height / 2)
+                    });
+                }
+            });
+            collectibles.push(r);
+        }
+        if (random() < 2 * computeDiscount()) {
+            let r = antigravBoost({
+                x: random(0, width),
+                y: random(upperBound, upperBound - height / 2)
+            });
+            gears.forEach(gear => {
+                if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
+                    r = antigravBoost({
                         x: random(0, width),
                         y: random(upperBound, upperBound - height / 2)
                     });
