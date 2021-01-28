@@ -97,12 +97,14 @@ const computeDiscount = () => {
 }
 
 function draw() {
-    background(0);
+    background(75 / 2, 68 / 2, 68 / 2);
     stroke(255);
     textAlign(CENTER);
     textSize(50);
     translate(0, height - 200 - player.bodies[6].position.y);
     fill(...playerColor);
+    stroke(150);
+    strokeWeight(5)
     drawPlayer(player);
     const collisions = Detector.collisions(
         [
@@ -201,6 +203,8 @@ function draw() {
     });
     platforms.forEach(platform => {
         fill(200);
+        stroke(255);
+        strokeWeight(5);
         drawVertices(platform);
     });
     gears.forEach(gear => {

@@ -94,6 +94,25 @@ function Gear({ x, y, spokeCount = 4, size, speed = 0.01 }) {
         isStatic: true
     })
     compoundGear.rotationSpeed = speed;
+    //const color = [0, 0, 0];
+    /*let cpool = random(255, 255 * 3);
+    let idxs = [0, 1, 2].sort(() => Math.random() - 0.5);
+    idxs.forEach(i => {
+        let c = random(0.3, 0.7);
+        color[i] = cpool * c;
+        cpool *= (1 - c);
+    });*/
+    const colors = [
+        [221, 46, 68],
+        [193, 105, 79],
+        [244, 144, 12],
+        [253, 203, 88],
+        [120, 177, 89],
+        [85, 172, 238],
+        [170, 142, 214],
+        [230, 231, 232]
+    ]
+    const color = colors[Math.floor(Math.random() * colors.length)];
     return {
         add() {
             World.add(engine.world, [compoundGear]);
@@ -101,15 +120,32 @@ function Gear({ x, y, spokeCount = 4, size, speed = 0.01 }) {
         draw() {
             var gravity = engine.world.gravity;
             //Body.applyForce(center, center.position, { x: center.mass * gravity.x, y: center.mass * gravity.y })
-            fill(200);
-            noStroke();
+            for (let i = 0; i < 5; i++) {
+                stroke(...color.concat(125 - 12.5 * 2 * i));
+                strokeWeight(10);
+                noFill();
+                //fill(0, 0, 0, 0)
+                push();
+                translate(center.position.x, center.position.y);
+                scale(1 + (0.15 / 5) * i);
+                //noStroke();
+                drawVertices(center, -center.position.x, -center.position.y);
+                spokes.forEach(spoke => {
+                    drawVertices(spoke, -center.position.x, -center.position.y);
+                });
+                pop();
+            }
+            fill(...color);
+            stroke(...color.map(x => x * 1.5));
+            strokeWeight(5);
             drawVertices(center);
             spokes.forEach(spoke => {
-                    drawVertices(spoke);
-                })
-                /*spokeConstraints.forEach(constraint => {
-                    drawConstraint(constraint);
-                })*/
+                drawVertices(spoke);
+            });
+            noStroke();
+            /*spokeConstraints.forEach(constraint => {
+                drawConstraint(constraint);
+            })*/
         },
         turn() {
             //center.angle += 0.01;
