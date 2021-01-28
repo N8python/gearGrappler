@@ -6,9 +6,19 @@ let platforms = [];
 let gears = [];
 let collectibles = [];
 let emitters = [];
+let sounds = {};
 let playerColor = [255, 255, 255];
+let backgroundMusic;
 let upperBound = -350;
 Matter.use(MatterWrap);
+
+function preload() {
+    backgroundMusic = loadSound("theme.mp3");
+    sounds.squish = loadSound("squish.mp3");
+    sounds.grappleFire = loadSound("grappleFire.wav");
+    sounds.grappleLine = loadSound("grappleLine.wav");
+    sounds.powerup = loadSound("powerup.wav");
+}
 
 function setup() {
     createCanvas(1000, 700);
@@ -101,9 +111,11 @@ function draw() {
             return player.bodies.map(y => [x, y]);
         }), engine);
     if (oldCollisions && collisions.length !== oldCollisions.length) {
+        let changes = 0;
         collisions
             .filter(collision => !oldCollisions.find(c => c.bodyA === collision.bodyA && c.bodyB === collision.bodyB))
             .forEach(collision => {
+                changes++;
                 emitters.push(Emitter({
                     x: collision.bodyA.position.x,
                     y: collision.bodyA.position.y,
@@ -121,7 +133,13 @@ function draw() {
                     display: "line",
                     lineSize: 8
                 }));
-            })
+            });
+        if (!sounds.squish.isPlaying() && changes > 1) {
+            sounds.squish.setVolume(random(1.5, 3));
+            sounds.squish.rate(random(0.75, 1.25))
+            sounds.squish.play();
+        }
+
     }
     oldCollisions = collisions;
     if (oldPlayerY) {
@@ -174,6 +192,9 @@ function draw() {
                     lineSize: 8
                 }));
                 collectibles.splice(i, true);
+                sounds.squish.setVolume(random(0.25, 0.75));
+                sounds.squish.rate(random(0.75, 1.25))
+                sounds.powerup.play();
                 return true;
             }
         })
@@ -254,6 +275,12 @@ function draw() {
         }
         if (grappleTick >= grappleMax) {
             grapple.stiffness = 0.01;
+            //if (Math.random() < 0.1) {
+            //sounds.grappleLine.pause();
+            //}
+        }
+        if (dist(grapple.bodyA.position.x, grapple.bodyA.position.y, grapple.bodyB.position.x, grapple.bodyB.position.y) < 150) {
+            sounds.grappleLine.pause();
         }
         stroke(0);
         strokeWeight(1);
@@ -383,6 +410,11 @@ function mousePressed() {
         grappleTick = 0;
         grappleInterval = floor(random(30, 90));
         grappleMax = dist(chosenBody.position.x, chosenBody.position.y, raycast[0].point.x, raycast[0].point.y) / 30;
+        sounds.grappleFire.setVolume(0.17);
+        sounds.grappleFire.rate(random(0.5, 1.5))
+        sounds.grappleFire.play();
+        sounds.grappleLine.rate(random(0.75, 1.25))
+        sounds.grappleLine.play();
     }
     if (dist(mx, my, player.bodies[6].position.x, player.bodies[6].position.y) < 30) {
         World.remove(engine.world, grapple);
@@ -393,3 +425,11 @@ function mousePressed() {
         grappleTick = undefined;
     }
 }
+let startedTrack = false;
+window.addEventListener("click", event => {
+    if (!startedTrack && backgroundMusic && backgroundMusic.isLoaded && backgroundMusic.isLoaded()) {
+        backgroundMusic.loop();
+        backgroundMusic.setVolume(0.2);
+        startedTrack = true;
+    }
+})

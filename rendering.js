@@ -55,7 +55,7 @@ function drawGrapple(c, amount = 1) {
         y2 += 2;
     }
     let angle;
-    let magnitude = (75) * 0.9 ** grappleTick;
+    let magnitude = (50) * 0.9 ** grappleTick;
     if (grappleMax < 10) {
         magnitude /= 2;
     }
