@@ -1,0 +1,46 @@
+#main {
+    position: absolute;
+    color: white;
+}
+
+h1,
+button {
+    font-family: 'Orbitron', sans-serif;
+}
+
+.btn {
+    min-width: 200px;
+    font-size: 32px;
+    border-radius: 16px;
+    background-color: darkgrey;
+    color: white;
+    transition: 250ms;
+    border: none;
+    padding: 4px;
+}
+
+.btn:hover {
+    background-color: lightgrey;
+}
+
+.btn:active {
+    background-color: grey;
+}
+
+.rainbow-text {
+    background-image: repeating-linear-gradient(to left, violet, purple, lightblue, lightgreen, yellow, orange, rgb(235, 154, 154), violet);
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: rainbow 4s ease-in-out infinite;
+    background-size: 200% 100%;
+}
+
+@keyframes rainbow {
+    0%,
+    100% {
+        background-position: 0 0;
+    }
+    50% {
+        background-position: 100% 0;
+    }
+}
