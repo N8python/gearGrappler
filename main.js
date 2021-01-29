@@ -6,12 +6,15 @@ let platforms = [];
 let gears = [];
 let collectibles = [];
 let emitters = [];
+let coinList = [];
 let sounds = {};
+let images = {};
 let playerColor = [255, 255, 255];
 let backgroundMusic;
 let upperBound = -350;
 let gameState = "start";
 let gameChangeTick = 0;
+let paused = false;
 Matter.use(MatterWrap);
 
 function reset() {
@@ -105,6 +108,7 @@ function preload() {
     sounds.grappleFire = loadSound("grappleFire.wav");
     sounds.grappleLine = loadSound("grappleLine.wav");
     sounds.powerup = loadSound("powerup.wav");
+    images.coin = loadImage("coin.png");
 }
 
 function setup() {
@@ -177,6 +181,12 @@ let oldGrapplePos;
 let playerScore = 0;
 let finalScore;
 let rope = 250;
+let coins = 0;
+if (localProxy.coins) {
+    coins = localProxy.coins;
+} else {
+    localProxy.coins = coins;
+}
 let oldPlayerY;
 let oldCollisions;
 const computeDiscount = () => {
@@ -184,8 +194,19 @@ const computeDiscount = () => {
 }
 
 function draw() {
+    localProxy.coins = coins;
     background(75 / 2, 68 / 2, 68 / 2);
     gameChangeTick++;
+    const numSize = coins.toString().length - 1;
+    imageMode(CENTER);
+    image(images.coin, 935 - 22.5 * numSize, 33, 50, 50);
+    fill(255, 215, 0);
+    textAlign(CENTER);
+    textSize(50);
+    text(coins, 975 - 10 * numSize, 50);
+    if (playerScore < 0) {
+        playerScore = 0;
+    }
     if (gameState === "play") {
         stroke(255);
         textAlign(CENTER);
@@ -299,14 +320,28 @@ function draw() {
         gears.forEach(gear => {
             if (abs(gear.y - player.bodies[6].position.y) < height * 1.5) {
                 gear.draw();
-                gear.turn();
+                if (!paused) {
+                    gear.turn();
+                }
             }
         });
         emitters.forEach(emitter => {
             emitter.draw();
         });
+        coinList.forEach(coin => {
+            coin.draw();
+        })
         if (rope <= 0 && !finalScore) {
             finalScore = playerScore;
+            let scoreCounter = finalScore;
+            let coinInterval = setInterval(() => {
+                const fraction = scoreCounter * 0.1;
+                scoreCounter -= fraction;
+                coins += round(fraction / 10);
+                if (scoreCounter < 5) {
+                    clearInterval(coinInterval);
+                }
+            }, 100);
             gameOverScreen();
         }
         if (grapple) {
@@ -319,15 +354,15 @@ function draw() {
                 x: Math.cos(grappleOffset.angle) * grappleOffset.magnitude,
                 y: Math.sin(grappleOffset.angle) * grappleOffset.magnitude
             }
-            if (grappleBody.rotationSpeed) {
+            if (grappleBody.rotationSpeed && !paused) {
                 grappleOffset.angle += grappleBody.rotationSpeed;
             }
             oldGrapplePos = { x: grappleBody.position.x + grapple.pointB.x, y: grappleBody.position.y + grapple.pointB.y };
-            if (rope > 0) {
+            if (rope > 0 && !paused) {
                 grappleTick++;
-            } else if (grappleTick > 0) {
+            } else if (grappleTick > 0 && !paused) {
                 grappleTick--;
-            } else if (rope < 0 && grappleTick <= 0) {
+            } else if (rope < 0 && grappleTick <= 0 && !paused) {
                 grappleTick = 0;
                 rope = 0;
                 setTimeout(() => {
@@ -339,7 +374,7 @@ function draw() {
                     grappleInterval = 0;
                 })
             }
-            if (grappleTick > 0 && grappleTick % grappleInterval === 0) {
+            if (grappleTick > 0 && grappleTick % grappleInterval === 0 && !paused) {
                 //stroke(255, 0, 0);
                 grappleRedFrames += floor(random(3, 7));
                 grappleInterval = floor(grappleInterval / 1.1);
@@ -361,13 +396,13 @@ function draw() {
                 stroke(0, 255, 0);
             }
             strokeWeight(5);
-            if (grappleTick < grappleMax && rope > 0) {
+            if (grappleTick < grappleMax && rope > 0 && !paused) {
                 rope -= floor(random(1, 5));
             }
             if (grappleTick > 0) {
                 drawGrapple(grapple, min(grappleTick / grappleMax, 1));
             }
-            if (grappleTick >= grappleMax) {
+            if (grappleTick >= grappleMax && !paused) {
                 grapple.stiffness = 0.01;
                 //if (Math.random() < 0.1) {
                 //sounds.grappleLine.pause();
@@ -451,6 +486,21 @@ function draw() {
                 });
                 collectibles.push(r);
             }
+            if (random() < 1 * computeDiscount()) {
+                let r = coinBoost({
+                    x: random(0, width),
+                    y: random(upperBound, upperBound - height / 2)
+                });
+                gears.forEach(gear => {
+                    if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
+                        r = coinBoost({
+                            x: random(0, width),
+                            y: random(upperBound, upperBound - height / 2)
+                        });
+                    }
+                });
+                collectibles.push(r);
+            }
             upperBound -= height / 2;
         }
         if (finalScore) {
@@ -463,16 +513,33 @@ function draw() {
         fill(255, 0, 0);
         textAlign(LEFT);
         text(Math.round(rope), 10, 50 - (height - 200 - player.bodies[6].position.y));
+        const numSize = coins.toString().length - 1;
+        imageMode(CENTER);
+        image(images.coin, 935 - 22.5 * numSize, 33 - (height - 200 - player.bodies[6].position.y), 50, 50);
+        fill(255, 215, 0);
+        textAlign(CENTER);
+        textSize(50);
+        text(coins, 975 - 10 * numSize, 50 - (height - 200 - player.bodies[6].position.y));
     }
     if (gameChangeTick < 70) {
         noStroke();
         fill(0, 0, 0, 255 - gameChangeTick * 4);
         rect(-width, -height, width * 2, height * 2);
     }
+    if (paused) {
+        engine.world.bodies.forEach(body => Sleeping.set(body, true));
+        player.bodies.forEach(body => Sleeping.set(body, true));
+    } else {
+        engine.world.bodies.forEach(body => Sleeping.set(body, false));
+        player.bodies.forEach(body => Sleeping.set(body, false));
+    }
 }
 
 function mousePressed() {
     if (gameState !== "play") {
+        return;
+    }
+    if (paused) {
         return;
     }
     const mx = mouseX;
@@ -529,6 +596,49 @@ function mousePressed() {
     }
 }
 const main = document.getElementById("main");
+const settingsIngame = document.getElementById("settings");
+setInterval(() => {
+    if (gameState === "play") {
+        settingsIngame.style.display = "inline-block";
+    } else {
+        settingsIngame.style.display = "none";
+    }
+});
+settingsIngame.onclick = () => {
+    if (!paused) {
+        paused = true;
+        main.innerHTML = `<h1 class="rainbow-text" style="margin-left:385px; margin-top: 150px;font-size:75px;">Menu</h1>`;
+        const backButton = document.createElement("button");
+        backButton.classList.add("btn");
+        backButton.style.marginLeft = "350px";
+        backButton.style.width = "300px";
+        backButton.innerHTML = "Exit";
+        backButton.onclick = () => {
+            main.classList.remove("w3-animate-opacity");
+            gameState = "start";
+            gameChangeTick = 0;
+            paused = false;
+            reset();
+            mainMenu();
+        }
+        const resumeButton = document.createElement("button");
+        resumeButton.classList.add("btn");
+        resumeButton.style.marginLeft = "350px";
+        resumeButton.style.width = "300px";
+        resumeButton.innerHTML = "Resume";
+        resumeButton.onclick = () => {
+            paused = false;
+            main.innerHTML = ``;
+        }
+        main.appendChild(backButton);
+        main.appendChild(document.createElement("br"));
+        main.appendChild(document.createElement("br"));
+        main.appendChild(resumeButton);
+    } else {
+        paused = false;
+        main.innerHTML = ``;
+    }
+}
 const gameOverScreen = () => {
     main.classList.add("w3-animate-opacity");
     main.innerHTML = `<h1 class="rainbow-text" style="margin-left:265px; margin-top: 150px;font-size:75px;">Game Over</h1>
@@ -542,10 +652,11 @@ const gameOverScreen = () => {
         main.classList.remove("w3-animate-opacity");
         gameState = "start";
         gameChangeTick = 0;
+        paused = false;
         reset();
         mainMenu();
     }
-    main.append(backButton);
+    main.appendChild(backButton);
 }
 const mainMenu = () => {
     main.classList.add("w3-animate-opacity");
@@ -560,7 +671,7 @@ const mainMenu = () => {
         gameChangeTick = 0;
         document.getElementById("main").innerHTML = "";
     }
-    main.append(playButton);
+    main.appendChild(playButton);
 }
 let startedTrack = false;
 window.addEventListener("click", event => {

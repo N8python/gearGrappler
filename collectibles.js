@@ -22,6 +22,41 @@ function ropeBoost({ x, y }) {
     }
 }
 
+function coinBoost({ x, y }) {
+    return {
+        draw() {
+            fill(255, 215, 0);
+            circle(x, y, 25);
+            fill(150);
+            textAlign(CENTER);
+            textSize(25);
+            text("$", x, y + 8);
+            textSize(50);
+        },
+        get x() {
+            return x;
+        },
+        get y() {
+            return y;
+        },
+        get size() {
+            return 25;
+        },
+        get color() {
+            return [255, 215, 0];
+        },
+        collect() {
+            coinList.push(Coin({
+                    x,
+                    y,
+                    value: floor(random(5, 20))
+                }))
+                //coins += floor(random(5, 10));
+                //rope += floor(random(100, 250));
+        }
+    }
+}
+
 function antigravBoost({ x, y }) {
     return {
         draw() {

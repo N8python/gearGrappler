@@ -102,7 +102,7 @@ function Gear({ x, y, spokeCount = 4, size, speed = 0.01 }) {
         color[i] = cpool * c;
         cpool *= (1 - c);
     });*/
-    const colors = [
+    let colors = [
         [221, 46, 68],
         [193, 105, 79],
         [244, 144, 12],
@@ -112,6 +112,7 @@ function Gear({ x, y, spokeCount = 4, size, speed = 0.01 }) {
         [170, 142, 214],
         [230, 231, 232]
     ]
+    colors = colors.map(color => color.map(x => x * 0.75));
     const color = colors[Math.floor(Math.random() * colors.length)];
     return {
         add() {
