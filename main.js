@@ -187,13 +187,33 @@ if (localProxy.coins) {
 } else {
     localProxy.coins = coins;
 }
+if (!localProxy.musicVolume) {
+    localProxy.musicVolume = 1;
+}
+if (!localProxy.sfxVolume) {
+    localProxy.sfxVolume = 1;
+}
+if (!localProxy.graphics) {
+    localProxy.graphics = "good";
+}
 let oldPlayerY;
 let oldCollisions;
 const computeDiscount = () => {
     return (0.65 / (1 + Math.exp(-player.bodies[6].position.y / 2000))) * 1.7 + 0.35;
 }
 
+function hardReset() {
+    coins = 0;
+    localStorage.clear();
+    location.reload();
+}
+
 function draw() {
+    if (localProxy.graphics === "good") {
+        pixelDensity(2);
+    } else if (localProxy.graphics === "fast") {
+        pixelDensity(1);
+    }
     localProxy.coins = coins;
     background(75 / 2, 68 / 2, 68 / 2);
     gameChangeTick++;
@@ -207,6 +227,7 @@ function draw() {
     if (playerScore < 0) {
         playerScore = 0;
     }
+    backgroundMusic.setVolume(0.2 * localProxy.musicVolume);
     if (gameState === "play") {
         stroke(255);
         textAlign(CENTER);
@@ -247,7 +268,7 @@ function draw() {
                     }));
                 });
             if (!sounds.squish.isPlaying() && changes > 1) {
-                sounds.squish.setVolume(random(1.5, 3));
+                sounds.squish.setVolume(random(1.5, 3) * localProxy.sfxVolume);
                 sounds.squish.rate(random(0.75, 1.25))
                 sounds.squish.play();
             }
@@ -304,7 +325,7 @@ function draw() {
                         lineSize: 8
                     }));
                     collectibles.splice(i, true);
-                    sounds.squish.setVolume(random(0.25, 0.75));
+                    sounds.squish.setVolume(random(0.25, 0.75) * localProxy.sfxVolume);
                     sounds.squish.rate(random(0.75, 1.25))
                     sounds.powerup.play();
                     return true;
@@ -542,6 +563,9 @@ function mousePressed() {
     if (paused) {
         return;
     }
+    if (mouseX > 937 && mouseY > 64 && mouseX < 937 + 52 && mouseY < 64 + 48) {
+        return;
+    }
     const mx = mouseX;
     const my = mouseY - (height - 200 - player.bodies[6].position.y);
     let chosenBody;
@@ -580,9 +604,10 @@ function mousePressed() {
         grappleTick = 0;
         grappleInterval = floor(random(30, 90));
         grappleMax = dist(chosenBody.position.x, chosenBody.position.y, raycast[0].point.x, raycast[0].point.y) / 30;
-        sounds.grappleFire.setVolume(0.17);
+        sounds.grappleFire.setVolume(0.17 * localProxy.sfxVolume);
         sounds.grappleFire.rate(random(0.5, 1.5))
         sounds.grappleFire.play();
+        sounds.grappleLine.setVolume(localProxy.sfxVolume);
         sounds.grappleLine.rate(random(0.75, 1.25))
         sounds.grappleLine.play();
     }
@@ -671,18 +696,102 @@ const mainMenu = () => {
         gameChangeTick = 0;
         document.getElementById("main").innerHTML = "";
     }
+    const settingsButton = document.createElement("button");
+    settingsButton.classList.add("btn");
+    settingsButton.style.marginLeft = "400px";
+    settingsButton.innerHTML = "Settings";
+    settingsButton.onclick = () => {
+        gameChangeTick = 0;
+        settings();
+    }
+    const shopButton = document.createElement("button");
+    shopButton.classList.add("btn");
+    shopButton.style.marginLeft = "400px";
+    shopButton.innerHTML = "Shop";
     main.appendChild(playButton);
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    main.appendChild(shopButton);
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    main.appendChild(settingsButton);
 }
+const settings = () => {
+    main.classList.add("w3-animate-opacity");
+    main.innerHTML = `<h1 class="rainbow-text" style="margin-left:327px;font-size:75px;">Settings</h1>`;
+    const backButton = document.createElement("button");
+    backButton.classList.add("btn");
+    backButton.style.marginLeft = "350px";
+    backButton.style.width = "300px";
+    backButton.innerHTML = "Back To Menu";
+    backButton.onclick = () => {
+        main.classList.remove("w3-animate-opacity");
+        gameState = "start";
+        gameChangeTick = 0;
+        paused = false;
+        reset();
+        mainMenu();
+    };
+    const musicSlider = document.createElement("input");
+    musicSlider.type = "range";
+    musicSlider.classList.add("goodSlider");
+    musicSlider.style.width = "200px";
+    musicSlider.style.marginLeft = "12px";
+    musicSlider.value = map(localProxy.musicVolume, 0, 1, 1, 100);
+    const sfxSlider = document.createElement("input");
+    sfxSlider.type = "range";
+    sfxSlider.classList.add("goodSlider");
+    sfxSlider.style.width = "200px";
+    sfxSlider.style.marginLeft = "24px";
+    sfxSlider.value = map(localProxy.sfxVolume, 0, 1, 1, 100);
+    musicSlider.onchange = () => {
+        localProxy.musicVolume = map(+musicSlider.value, 1, 100, 0, 1);
+    }
+    sfxSlider.onchange = () => {
+        localProxy.sfxVolume = map(+sfxSlider.value, 1, 100, 0, 1);
+    }
+    const graphicsButton = document.createElement("button");
+    graphicsButton.classList.add("btn");
+    graphicsButton.style.marginLeft = "350px";
+    graphicsButton.style.width = "300px";
+    graphicsButton.innerHTML = `Graphics: ${localProxy.graphics === "good" ? "Good" : "Fast"}`;
+    graphicsButton.onclick = () => {
+            if (graphicsButton.innerHTML === "Graphics: Good") {
+                graphicsButton.innerHTML = "Graphics: Fast";
+                localProxy.graphics = "fast";
+            } else {
+                graphicsButton.innerHTML = "Graphics: Good";
+                localProxy.graphics = "good";
+            }
+        }
+        //main.innerHTML += `<label style="margin-left:332px">Music Volume:</label>`;
+    const musicLabel = document.createElement("label");
+    musicLabel.style.marginLeft = "332px";
+    musicLabel.innerHTML = "Music Volume:";
+    main.appendChild(musicLabel);
+    main.appendChild(musicSlider);
+    main.appendChild(document.createElement("br"));
+    //main.innerHTML += `<label style="margin-left:332px">SFX Volume:</label>`;
+    const sfxLabel = document.createElement("label");
+    sfxLabel.style.marginLeft = "332px";
+    sfxLabel.innerHTML = "SFX Volume:";
+    main.appendChild(sfxLabel);
+    main.appendChild(sfxSlider);
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    main.appendChild(graphicsButton);
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    main.appendChild(backButton);
+}
+mainMenu();
 let startedTrack = false;
 window.addEventListener("click", event => {
-    if (gameState === "play" && !startedTrack && backgroundMusic && backgroundMusic.isLoaded && backgroundMusic.isLoaded()) {
+    if (!startedTrack && backgroundMusic && backgroundMusic.isLoaded && backgroundMusic.isLoaded()) {
         backgroundMusic.loop();
         backgroundMusic.setVolume(0.2);
         startedTrack = true;
     }
 });
-document.getElementById("play").onclick = () => {
-    gameState = "play";
-    gameChangeTick = 0;
-    document.getElementById("main").innerHTML = "";
-}
