@@ -7,6 +7,7 @@ let platforms = [];
 let gears = [];
 let collectibles = [];
 let emitters = [];
+let blackHoles = [];
 let coinList = [];
 let sounds = {};
 let images = {};
@@ -55,7 +56,7 @@ function reset() {
     });
     player = Composites.softBody(width / 2, 660, 4, 4, 1, 1, true, 5, {
         friction: 0.05,
-        frictionStatic: 0.1,
+        frictionStatic: 0.1
     });
     /*player.bodies.forEach(body => {
         body.ignoreGravity = true;
@@ -399,6 +400,11 @@ function draw() {
                 }
             })
         });
+        blackHoles.forEach(hole => {
+            if (abs(hole.y - player.bodies[6].position.y) < height * 1.5) {
+                hole.draw();
+            }
+        });
         platforms.forEach(platform => {
             fill(200);
             stroke(255);
@@ -560,6 +566,23 @@ function draw() {
                 }
             } else {
                 addBoost(coinBoost, 1);
+            }
+            if (playerScore > 1000) {
+                if (random() < min(playerScore / 20000, 0.2)) {
+                    let b = BlackHole({
+                        x: random(0, width),
+                        y: random(upperBound, upperBound - height / 2)
+                    });
+                    gears.forEach(gear => {
+                        if (dist(b.x, b.y, gear.x, gear.y) < (gear.size + 30) * 1.5) {
+                            b = BlackHole({
+                                x: random(0, width),
+                                y: random(upperBound, upperBound - height / 2)
+                            });
+                        }
+                    });
+                    blackHoles.push(b);
+                }
             }
             upperBound -= height / 2;
         }
