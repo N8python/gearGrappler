@@ -17,7 +17,11 @@ function ropeBoost({ x, y }) {
             return [255, 0, 0];
         },
         collect() {
-            rope += floor(random(100, 250));
+            if (localProxy.selectedSquare === "Gabby") {
+                rope += floor(random(100 + localProxy.squares["Gabby"].level * 10, 250 + localProxy.squares["Gabby"].level * 10));
+            } else {
+                rope += floor(random(100, 250));
+            }
         }
     }
 }
@@ -76,16 +80,20 @@ function antigravBoost({ x, y }) {
             return 25;
         },
         collect() {
+            let boost = 0;
+            if (localProxy.selectedSquare === "Gabriel") {
+                boost = localProxy.squares["Gabriel"].level;
+            }
             player.bodies.forEach(body => {
                 body.ignoreGravity = true;
             })
-            playerColor = [255, 0, 255];
+            player.ignoreGravity = true;
             setTimeout(() => {
                 player.bodies.forEach(body => {
                     body.ignoreGravity = false;
                 })
-                playerColor = [255, 255, 255];
-            }, round(random(3, 10)) * 1000)
+                player.ignoreGravity = false;
+            }, round(random(3 + boost, 10 + boost)) * 1000)
         }
     }
 }
@@ -118,7 +126,11 @@ function jumpBoost({ x, y }) {
                 grappleTick = undefined;
             }
             player.bodies.forEach(body => {
-                Body.setVelocity(body, { x: body.velocity.x * 0.1, y: body.velocity.y - 20 });
+                if (localProxy.selectedSquare === "Gina") {
+                    Body.setVelocity(body, { x: body.velocity.x * 0.05, y: min(body.velocity.y, 0) - 25 - 2 * localProxy.squares["Gina"].level });
+                } else {
+                    Body.setVelocity(body, { x: body.velocity.x * 0.1, y: body.velocity.y - 20 });
+                }
             })
         }
     }

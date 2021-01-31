@@ -5,7 +5,9 @@
 
 h1,
 button,
-label {
+label,
+span,
+h3 {
     font-family: 'Orbitron', sans-serif;
 }
 
@@ -24,8 +26,17 @@ label {
     background-color: lightgrey;
 }
 
+.btn:hover:disabled {
+    background-color: darkgrey;
+}
+
 .btn:active {
     background-color: grey;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+    color: rgb(220, 220, 220);
 }
 
 .rainbow-text {

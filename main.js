@@ -1,3 +1,4 @@
+p5.disableFriendlyErrors = true;
 const { Engine, Events, Composite, Render, World, Bodies, Body, Detector, Constraint, Sleeping, Query, Composites } = Matter;
 let engine;
 let player;
@@ -9,7 +10,12 @@ let emitters = [];
 let coinList = [];
 let sounds = {};
 let images = {};
-let playerColor = [255, 255, 255];
+let squareColors = {
+    "Gus": [255, 255, 255],
+    "Gabby": [255, 0, 0],
+    "Gabriel": [255, 0, 255],
+    "Gina": [0, 255, 255]
+};
 let backgroundMusic;
 let upperBound = -350;
 let gameState = "start";
@@ -41,11 +47,11 @@ function reset() {
     oldGrapplePos;
     playerScore = 0;
     finalScore = undefined;
-    rope = 250;
+    rope = localProxy.selectedSquare === "Gabby" ? 500 : 250;
     oldPlayerY;
     oldCollisions;
     engine = Engine.create({
-        enableSleeping: true
+        //enableSleeping: true
     });
     player = Composites.softBody(width / 2, 660, 4, 4, 1, 1, true, 5, {
         friction: 0.05,
@@ -114,7 +120,7 @@ function preload() {
 function setup() {
     createCanvas(1000, 700);
     engine = Engine.create({
-        enableSleeping: true
+        //enableSleeping: true
     });
     player = Composites.softBody(width / 2, 660, 4, 4, 1, 1, true, 5, {
         friction: 0.05,
@@ -180,7 +186,7 @@ let grappleRedFrames = 0;
 let oldGrapplePos;
 let playerScore = 0;
 let finalScore;
-let rope = 250;
+let rope = localProxy.selectedSquare === "Gabby" ? 500 : 250;
 let coins = 0;
 if (localProxy.coins) {
     coins = localProxy.coins;
@@ -193,6 +199,29 @@ if (!localProxy.musicVolume) {
 if (!localProxy.sfxVolume) {
     localProxy.sfxVolume = 1;
 }
+if (!localProxy.squares) {
+    localProxy.squares = {
+        "Gus": {
+            level: 1,
+            cost: 100
+        },
+        "Gabby": {
+            level: 0,
+            cost: 200
+        },
+        "Gabriel": {
+            level: 0,
+            cost: 350
+        },
+        "Gina": {
+            level: 0,
+            cost: 500
+        }
+    };
+}
+if (!localProxy.selectedSquare) {
+    localProxy.selectedSquare = "Gus";
+}
 if (!localProxy.graphics) {
     localProxy.graphics = "good";
 }
@@ -200,6 +229,23 @@ let oldPlayerY;
 let oldCollisions;
 const computeDiscount = () => {
     return (0.65 / (1 + Math.exp(-player.bodies[6].position.y / 2000))) * 1.7 + 0.35;
+}
+const addBoost = (boostFunc, magnitude) => {
+    if (random() < magnitude * computeDiscount()) {
+        let r = boostFunc({
+            x: random(0, width),
+            y: random(upperBound, upperBound - height / 2)
+        });
+        gears.forEach(gear => {
+            if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
+                r = boostFunc({
+                    x: random(0, width),
+                    y: random(upperBound, upperBound - height / 2)
+                });
+            }
+        });
+        collectibles.push(r);
+    }
 }
 
 function hardReset() {
@@ -229,14 +275,32 @@ function draw() {
     }
     backgroundMusic.setVolume(0.2 * localProxy.musicVolume);
     if (gameState === "play") {
+        if (localProxy.selectedSquare === "Gabriel") {
+            player.bodies.forEach(body => {
+                body.gravResistance = 0.45 + 0.05 * localProxy.squares["Gabriel"].level;
+            })
+        } else {
+            player.bodies.forEach(body => {
+                body.gravResistance = 0;
+            });
+        }
         stroke(255);
         textAlign(CENTER);
         textSize(50);
         translate(0, height - 200 - player.bodies[6].position.y);
-        fill(...playerColor);
-        stroke(150);
+        let color = [...squareColors[localProxy.selectedSquare]];
+        if (player.ignoreGravity) {
+            color = [255, 0, 255];
+            if (localProxy.selectedSquare === "Gabriel") {
+                color = [255, 127, 255];
+            }
+        }
+        //console.log(color);
+        fill(...color);
+        stroke(...color.map(x => x * 0.6));
         strokeWeight(5)
         drawPlayer(player);
+        stroke(150);
         const collisions = Detector.collisions(
             [
                 ground, ...platforms, ...gears.flatMap(gear => gear.bodies())
@@ -293,8 +357,12 @@ function draw() {
         });
         //drawVertices(player);
         fill(200);
+        stroke(150, 150, 150);
         drawVertices(ground);
         collectibles.forEach((collectible, i) => {
+            if (abs(collectible.y - player.bodies[6].position.y) > height * 1.5) {
+                return;
+            }
             noStroke();
             fill(collectible.color.concat(65));
             circle(collectible.x, collectible.y, collectible.size * 1.75);
@@ -325,8 +393,7 @@ function draw() {
                         lineSize: 8
                     }));
                     collectibles.splice(i, true);
-                    sounds.squish.setVolume(random(0.25, 0.75) * localProxy.sfxVolume);
-                    sounds.squish.rate(random(0.75, 1.25))
+                    sounds.powerup.setVolume(0.75 * localProxy.sfxVolume);
                     sounds.powerup.play();
                     return true;
                 }
@@ -462,65 +529,37 @@ function draw() {
                 World.add(engine.world, r);
                 platforms.push(r);
             }
-            if (random() < 2 * computeDiscount()) {
-                let r = ropeBoost({
-                    x: random(0, width),
-                    y: random(upperBound, upperBound - height / 2)
-                });
-                gears.forEach(gear => {
-                    if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
-                        r = ropeBoost({
-                            x: random(0, width),
-                            y: random(upperBound, upperBound - height / 2)
-                        });
-                    }
-                });
-                collectibles.push(r);
+            if (localProxy.selectedSquare === "Gus") {
+                for (let i = 0; i < random(1, 1 + round(localProxy.squares["Gus"].level / 4)); i++) {
+                    addBoost(ropeBoost, 2);
+                }
+            } else {
+                addBoost(ropeBoost, 2);
             }
-            if (random() < 2 * computeDiscount()) {
-                let r = jumpBoost({
-                    x: random(0, width),
-                    y: random(upperBound, upperBound - height / 2)
-                });
-                gears.forEach(gear => {
-                    if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
-                        r = jumpBoost({
-                            x: random(0, width),
-                            y: random(upperBound, upperBound - height / 2)
-                        });
-                    }
-                });
-                collectibles.push(r);
+            if (localProxy.selectedSquare === "Gina") {
+                for (let i = 0; i < max(1, round(localProxy.squares["Gina"].level / 3)); i++) {
+                    addBoost(jumpBoost, 2);
+                }
+            } else if (localProxy.selectedSquare === "Gus") {
+                for (let i = 0; i < random(1, 1 + round(localProxy.squares["Gus"].level / 4)); i++) {
+                    addBoost(jumpBoost, 2);
+                }
+            } else {
+                addBoost(jumpBoost, 2);
             }
-            if (random() < 2 * computeDiscount()) {
-                let r = antigravBoost({
-                    x: random(0, width),
-                    y: random(upperBound, upperBound - height / 2)
-                });
-                gears.forEach(gear => {
-                    if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
-                        r = antigravBoost({
-                            x: random(0, width),
-                            y: random(upperBound, upperBound - height / 2)
-                        });
-                    }
-                });
-                collectibles.push(r);
+            if (localProxy.selectedSquare === "Gus") {
+                for (let i = 0; i < random(1, 1 + round(localProxy.squares["Gus"].level / 4)); i++) {
+                    addBoost(antigravBoost, 2);
+                }
+            } else {
+                addBoost(antigravBoost, 2);
             }
-            if (random() < 1 * computeDiscount()) {
-                let r = coinBoost({
-                    x: random(0, width),
-                    y: random(upperBound, upperBound - height / 2)
-                });
-                gears.forEach(gear => {
-                    if (dist(r.x, r.y, gear.x, gear.y) < (gear.size + r.size) * 1.5) {
-                        r = coinBoost({
-                            x: random(0, width),
-                            y: random(upperBound, upperBound - height / 2)
-                        });
-                    }
-                });
-                collectibles.push(r);
+            if (localProxy.selectedSquare === "Gus") {
+                for (let i = 0; i < random(1, 1 + round(localProxy.squares["Gus"].level / 4)); i++) {
+                    addBoost(coinBoost, 1);
+                }
+            } else {
+                addBoost(coinBoost, 1);
             }
             upperBound -= height / 2;
         }
@@ -603,7 +642,12 @@ function mousePressed() {
         World.add(engine.world, grapple);
         grappleTick = 0;
         grappleInterval = floor(random(30, 90));
-        grappleMax = dist(chosenBody.position.x, chosenBody.position.y, raycast[0].point.x, raycast[0].point.y) / 30;
+        if (localProxy.selectedSquare === "Gabby") {
+            grappleInterval += 30 + 6 * localProxy.squares["Gabby"].level;
+            grappleInterval *= 1.1 ** localProxy.squares["Gabby"].level;
+            grappleInterval = round(grappleInterval);
+        }
+        grappleMax = dist(chosenBody.position.x, chosenBody.position.y, raycast[0].point.x, raycast[0].point.y) / (30 + ((localProxy.selectedSquare === "Gabby") ? localProxy.squares["Gabby"].level : 0));
         sounds.grappleFire.setVolume(0.17 * localProxy.sfxVolume);
         sounds.grappleFire.rate(random(0.5, 1.5))
         sounds.grappleFire.play();
@@ -615,6 +659,11 @@ function mousePressed() {
         World.remove(engine.world, grapple);
         grapple = undefined;
         grappleInterval = floor(random(30, 90));
+        if (localProxy.selectedSquare === "Gabby") {
+            grappleInterval += 30 + 6 * localProxy.squares["Gabby"].level;
+            grappleInterval *= 1.1 ** localProxy.squares["Gabby"].level;
+            grappleInterval = round(grappleInterval);
+        }
         grappleBody = undefined;
         grappleOffset = undefined;
         grappleTick = undefined;
@@ -701,6 +750,7 @@ const mainMenu = () => {
     settingsButton.style.marginLeft = "400px";
     settingsButton.innerHTML = "Settings";
     settingsButton.onclick = () => {
+        main.classList.remove("w3-animate-opacity");
         gameChangeTick = 0;
         settings();
     }
@@ -708,6 +758,11 @@ const mainMenu = () => {
     shopButton.classList.add("btn");
     shopButton.style.marginLeft = "400px";
     shopButton.innerHTML = "Shop";
+    shopButton.onclick = () => {
+        main.classList.remove("w3-animate-opacity");
+        gameChangeTick = 0;
+        shop();
+    }
     main.appendChild(playButton);
     main.appendChild(document.createElement("br"));
     main.appendChild(document.createElement("br"));
@@ -715,6 +770,174 @@ const mainMenu = () => {
     main.appendChild(document.createElement("br"));
     main.appendChild(document.createElement("br"));
     main.appendChild(settingsButton);
+}
+const shop = () => {
+    main.classList.add("w3-animate-opacity");
+    main.innerHTML = `<h1 class="rainbow-text" style="margin-left:394px;font-size:75px;">Shop</h1>`;
+    const backButton = document.createElement("button");
+    backButton.classList.add("btn");
+    backButton.style.marginLeft = "350px";
+    backButton.style.width = "300px";
+    backButton.innerHTML = "Back To Menu";
+    backButton.onclick = () => {
+        main.classList.remove("w3-animate-opacity");
+        gameState = "start";
+        gameChangeTick = 0;
+        paused = false;
+        reset();
+        mainMenu();
+    };
+    const shopBoxes = [];
+    const colors = [
+        [255, 255, 255],
+        [255, 0, 0],
+        [255, 0, 255],
+        [0, 255, 255]
+    ];
+    const names = ["Gus", "Gabby", "Gabriel", "Gina"];
+    const joes = ["Joe Normie", "Joe Adventure™", "Joe LITE", "Joe Spring"]
+    for (let i = 0; i < 4; i++) {
+        const box = document.createElement("div");
+        box.style.width = "200px";
+        box.style.height = "200px";
+        box.style.border = "5px solid white";
+        box.style.display = "inline-block";
+        box.style.textAlign = "center";
+        box.style.marginRight = "16px";
+        const square = document.createElement("div");
+        square.style.width = "50px";
+        square.style.height = "50px";
+        square.style.border = `5px solid rgb(${colors[i].map(x => x * 0.6).join(", ")})`;
+        square.style.backgroundColor = `rgb(${colors[i].join(", ")})`;
+        square.style.marginLeft = "calc(50% - 25px)";
+        square.style.marginTop = "calc(25% - 25px)";
+        const nameLabel = document.createElement("h3");
+        const info = localProxy.squares[names[i]];
+        nameLabel.innerHTML = names[i];
+        if (info.level > 0) {
+            nameLabel.innerHTML += ` (Lv. ${info.level})`;
+        }
+        nameLabel.style.color = "white";
+        nameLabel.style.display = "inline-block";
+        const joeLabel = document.createElement("span");
+        joeLabel.innerHTML = "<em>" + joes[i] + "</em>";
+        joeLabel.style.color = "white";
+        joeLabel.style.display = "inline-block";
+        joeLabel.style.marginTop = "12%";
+        //nameLabel.style.marginLeft = `calc(50% - ${nameLabel.clientWidth}px)`;
+        //nameLabel.style.textAlign = "center";
+        /*nameLabel.style.margin = "auto";
+        nameLabel.style.width = Math.floor(8 * names[i].length) + "px";
+        nameLabel.style.display = "block";*/
+        nameLabel.classList.add("w3-center");
+        box.nameLabel = nameLabel;
+        box.joeLabel = joeLabel;
+        box.appendChild(nameLabel);
+        box.appendChild(square);
+        box.appendChild(joeLabel);
+        shopBoxes.push(box);
+    }
+    shopBoxes[0].style.marginLeft = "68px";
+    shopBoxes.forEach(box => {
+        main.appendChild(box)
+    });
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    const shopButtons = [];
+    const squares = localProxy.squares;
+    for (let i = 0; i < 4; i++) {
+        const name = names[i];
+        const info = localProxy.squares[name];
+        const selectButton = document.createElement("button");
+        selectButton.classList.add("btn");
+        selectButton.style.marginLeft = "16px";
+        selectButton.innerHTML = names[i] === localProxy.selectedSquare ? "Selected" : "Select";
+        if (info.level === 0) {
+            selectButton.disabled = true;
+        }
+        if (names[i] === localProxy.selectedSquare) {
+            selectButton.disabled = true;
+        }
+        selectButton.onclick = () => {
+            localProxy.selectedSquare = names[i];
+            selectButton.innerHTML = "Selected";
+            selectButton.disabled = true;
+            shopButtons.filter((_, i) => i % 3 === 0).forEach((button, i) => {
+                if (button !== selectButton && localProxy.squares[names[i]].level > 0) {
+                    button.disabled = false;
+                    button.innerHTML = "Select";
+                }
+            });
+        }
+        const shopButton = document.createElement("button");
+        shopButton.classList.add("btn");
+        shopButton.style.marginLeft = "16px";
+        shopButton.onclick = () => {
+            if (coins > info.cost) {
+                info.level += 1;
+                coins -= info.cost;
+                info.cost *= 1.1;
+                info.cost = Math.round(info.cost);
+                squares[name] = info;
+                localProxy.squares = squares;
+                if (info.level === 1) {
+                    selectButton.disabled = false;
+                    levelUpButton.disabled = false;
+                    shopButton.disabled = true;
+                    shopBoxes[i].nameLabel.innerHTML += " (Lv. 1)";
+                }
+                shopButton.innerHTML = `${info.cost} Coins`;
+            }
+        }
+        shopButton.innerHTML = `${info.cost} Coins`;
+        const levelUpButton = document.createElement("button");
+        levelUpButton.classList.add("btn");
+        levelUpButton.style.marginLeft = "16px";
+        levelUpButton.onclick = () => {
+            if (coins > info.cost) {
+                info.level += 1;
+                coins -= info.cost;
+                info.cost *= 1.1;
+                info.cost = Math.round(info.cost);
+                squares[name] = info;
+                localProxy.squares = squares;
+                shopBoxes[i].nameLabel.innerHTML = names[i] + ` (Lv. ${info.level})`;
+                shopButton.innerHTML = `${info.cost} Coins`;
+                if (info.level === 9) {
+                    levelUpButton.disabled = true;
+                }
+            }
+        }
+        levelUpButton.innerHTML = "Level Up";
+        if (info.level == 0 || info.level >= 9) {
+            levelUpButton.disabled = true;
+        }
+        if (info.level > 0) {
+            shopButton.disabled = true;
+        }
+        shopButtons.push(selectButton);
+        shopButtons.push(shopButton);
+        shopButtons.push(levelUpButton);
+    }
+    shopButtons[0].style.marginLeft = "68px";
+    shopButtons[1].style.marginLeft = "68px";
+    shopButtons[2].style.marginLeft = "68px";
+    shopButtons.filter((_, i) => i % 3 === 0).forEach(button => {
+        main.appendChild(button)
+    });
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    shopButtons.filter((_, i) => i % 3 === 1).forEach(button => {
+        main.appendChild(button)
+    });
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    shopButtons.filter((_, i) => i % 3 === 2).forEach(button => {
+        main.appendChild(button)
+    });
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    main.appendChild(backButton);
 }
 const settings = () => {
     main.classList.add("w3-animate-opacity");

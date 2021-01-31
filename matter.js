@@ -8858,8 +8858,8 @@
                                 continue;
 
                             // apply gravity
-                            body.force.y += body.mass * gravity.y * gravityScale;
-                            body.force.x += body.mass * gravity.x * gravityScale;
+                            body.force.y += body.mass * gravity.y * gravityScale * (body.gravResistance ? (1 - body.gravResistance) : 1);
+                            body.force.x += body.mass * gravity.x * gravityScale * (body.gravResistance ? (1 - body.gravResistance) : 1);
                         }
                     };
 
