@@ -29,9 +29,13 @@ function BlackHole({ x, y }) {
                 if (r > 30 && r < 1000) {
                     power += 0.001;
                     power = min(power, powerMax);
+                    let playerDiscount = 1;
+                    if (localProxy.selectedSquare === "Gabriel") {
+                        playerDiscount -= 0.075 * localProxy.squares["Gabriel"].level;
+                    }
                     Body.applyForce(body, { x: body.position.x, y: body.position.y }, {
-                        x: force * 0.75 * power ** 2 * -cos(angle),
-                        y: force * 0.75 * power ** 2 * -sin(angle)
+                        x: force * playerDiscount * 0.75 * power ** 2 * -cos(angle),
+                        y: force * playerDiscount * 0.75 * power ** 2 * -sin(angle)
                     });
                 } else if (r < 30) {
                     power -= 0.001;

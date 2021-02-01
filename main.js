@@ -221,6 +221,9 @@ if (localProxy.coins) {
 } else {
     localProxy.coins = coins;
 }
+if (!localProxy.tutorialStep) {
+    localProxy.tutorialStep = 1;
+}
 if (!localProxy.musicVolume) {
     localProxy.musicVolume = 1;
 }
@@ -317,15 +320,11 @@ function draw() {
         textSize(50);
         translate(0, height - 200 - player.bodies[6].position.y);
         let color = [...squareColors[localProxy.selectedSquare]];
-        if (player.ignoreGravity) {
-            color = [255, 0, 255];
-            if (localProxy.selectedSquare === "Gabriel") {
-                color = [255, 127, 255];
-            }
-        }
-        //console.log(color);
         fill(...color);
         stroke(...color.map(x => x * 0.6));
+        if (player.ignoreGravity) {
+            stroke(255, 127, 255);
+        }
         strokeWeight(5)
         drawPlayer(player);
         stroke(150);
@@ -630,6 +629,31 @@ function draw() {
         textAlign(CENTER);
         textSize(50);
         text(coins, 975 - 10 * numSize, 50 - (height - 200 - player.bodies[6].position.y));
+        if (localProxy.tutorialStep === 1) {
+            fill(255);
+            stroke(0);
+            strokeWeight(3);
+            textSize(25);
+            text("Click on a gear to\n grapple towards it.", width / 2, height / 2);
+        }
+        if (localProxy.tutorialStep === 2) {
+            fill(255);
+            stroke(0);
+            strokeWeight(3);
+            textSize(20);
+            text("This is how much \nrope you have.\n It goes down \nwhenever you grapple. \n If it reaches zero, \ngame over.", 120, 100 - (height - 200 - player.bodies[6].position.y));
+            stroke(255)
+            line(120, 82.5 - (height - 200 - player.bodies[6].position.y), 47.5, 55 - (height - 200 - player.bodies[6].position.y));
+        }
+        if (localProxy.tutorialStep === 3) {
+            fill(255);
+            stroke(0);
+            strokeWeight(3);
+            textSize(20);
+            text("This is your score. \nIf you go up,\n it goes up. \n When you fall, \n it goes down. \nTurned into coins \n at end of the game.", 500, 100 - (height - 200 - player.bodies[6].position.y));
+            stroke(255)
+            line(500, 82.5 - (height - 200 - player.bodies[6].position.y), 500, 55 - (height - 200 - player.bodies[6].position.y));
+        }
     }
     if (gameChangeTick < 70) {
         noStroke();
@@ -685,6 +709,9 @@ function mousePressed() {
             length: 0,
             type: "spring"
         });
+        if (localProxy.tutorialStep < 4) {
+            localProxy.tutorialStep++;
+        }
         grappleOffset = {
             angle: createVector(raycast[0].point.x - raycast[0].body.position.x, raycast[0].point.y - raycast[0].body.position.y).heading(),
             magnitude: dist(raycast[0].body.position.x, raycast[0].body.position.y, raycast[0].point.x, raycast[0].point.y)
