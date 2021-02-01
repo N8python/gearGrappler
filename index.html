@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/p5@1.2.0/lib/p5.js"></script>
+    <script src="https://unpkg.com/typewriter-effect@latest/dist/core.js"></script>
     <script src="p5.sound.js"></script>
     <script src="matter.js"></script>
     <script src="matter-wrap.js"></script>
@@ -20,6 +21,11 @@
     <div id="main">
         <!--<h1 class="rainbow-text" style="margin-left:203px;font-size:75px;">Gear Grappler</h1>
         <button style="margin-left:400px;" class="btn" id="play">Play</button>-->
+    </div>
+    <div id="modal">
+        <button id="closeModal" class="btn" style="float: right;min-width:30px;font-size:16px;">x</button>
+        <h1 id="nameContent" style="color:rgb(50, 200, 50);margin-left:16px;margin-top:16px;"></h1>
+        <div id="typeContent" style="color:rgb(50, 200, 50);margin-left:16px;margin-right:16px;"></div>
     </div>
     <button id="settings" class="btn" style="position:absolute;margin-left:937px;margin-top:64px;min-width: 60px;"><i class="w3-xxlarge fa fa-cog"></i></button>
     <script src="rendering.js"></script>

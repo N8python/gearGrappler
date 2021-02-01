@@ -17,6 +17,33 @@ let squareColors = {
     "Gabriel": [255, 0, 255],
     "Gina": [0, 255, 255]
 };
+let squareInfo = {
+    "Gus": `
+    He grew up on the streets of Cityville. He went from rags to riches through plot devices. 
+    Then he spent all his money betting on high-stakes grappling competitions. 
+    Now he plays in them himself.
+    `,
+    "Gabby": `
+    Lucrative entrepreneur who launched a rope-based startup. 
+    Attempted to artificially inflate demand and decrease supply by buying all the rope herself.
+    Now uses her abundance of rope to perform in obscure gear grappling web games.
+    `,
+    "Gabriel": `
+    Raised on the moon. Now lives on Earth.
+    (Ignores implication of moon society).
+    Being on the moon made him resistant to gravity. Somehow. Yes.
+    Now grapples in order to get money to go to Mars.
+    (Ignores implication of martian society).
+    `,
+    "Gina": `
+    After trampolines were outlawed due to child safety concerns, Gina
+    quickly became a prominent dealer in the up-and-coming trampoline 
+    black market*. Unfortunately, due to a series of tragic vague and convenient events,
+    Gina was driven to ruin and now grapples from gear to gear in hope of getting her life back.
+    *She knows how to jump very high because of her trampoline-themed backstory.
+    `
+
+}
 let backgroundMusic;
 let upperBound = -350;
 let gameState = "start";
@@ -693,6 +720,26 @@ function mousePressed() {
     }
 }
 const main = document.getElementById("main");
+const modal = document.getElementById("modal");
+const getModalTyper = () => modalTyper;
+const getNameTyper = () => nameTyper;
+let modalTyper = new Typewriter(document.getElementById("typeContent"), {
+    delay: 50
+});
+let nameTyper = new Typewriter(document.getElementById("nameContent"), {
+    delay: 50
+})
+document.getElementById("closeModal").onclick = () => {
+    modal.style.display = "none";
+    document.getElementById("typeContent").innerHTML = "";
+    document.getElementById("nameContent").innerHTML = "";
+    modalTyper = new Typewriter(document.getElementById("typeContent"), {
+        delay: 50
+    });
+    nameTyper = new Typewriter(document.getElementById("nameContent"), {
+        delay: 50
+    })
+};
 const settingsIngame = document.getElementById("settings");
 setInterval(() => {
     if (gameState === "play") {
@@ -827,6 +874,7 @@ const shop = () => {
         box.style.display = "inline-block";
         box.style.textAlign = "center";
         box.style.marginRight = "16px";
+        box.style.position = "relative";
         const square = document.createElement("div");
         square.style.width = "50px";
         square.style.height = "50px";
@@ -834,6 +882,21 @@ const shop = () => {
         square.style.backgroundColor = `rgb(${colors[i].join(", ")})`;
         square.style.marginLeft = "calc(50% - 25px)";
         square.style.marginTop = "calc(25% - 25px)";
+        const infoButton = document.createElement("button");
+        infoButton.classList.add("btn");
+        infoButton.innerHTML = "Info";
+        infoButton.style.minWidth = "50px";
+        infoButton.style.fontSize = "16px";
+        infoButton.style.position = "absolute";
+        infoButton.style.top = "45%";
+        infoButton.style.left = "0px";
+        infoButton.onclick = () => {
+                document.getElementById("modal").style.display = "block";
+                getNameTyper().deleteAll(10).typeString(names[i]).start();
+                getModalTyper().deleteAll(5).typeString(squareInfo[names[i]]).start();
+            }
+            //infoButton.style.position = "absolute";
+            //infoButton.style.left = box.style.left + "px";
         const nameLabel = document.createElement("h3");
         const info = localProxy.squares[names[i]];
         nameLabel.innerHTML = names[i];
@@ -855,6 +918,7 @@ const shop = () => {
         nameLabel.classList.add("w3-center");
         box.nameLabel = nameLabel;
         box.joeLabel = joeLabel;
+        box.appendChild(infoButton);
         box.appendChild(nameLabel);
         box.appendChild(square);
         box.appendChild(joeLabel);
