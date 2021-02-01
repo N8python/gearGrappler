@@ -641,7 +641,7 @@ function draw() {
             stroke(0);
             strokeWeight(3);
             textSize(20);
-            text("This is how much \nrope you have.\n It goes down \nwhenever you grapple. \n If it reaches zero, \ngame over.", 120, 100 - (height - 200 - player.bodies[6].position.y));
+            text("This is how much \nrope you have.\n It goes down \nwhenever you grapple. \n If it reaches zero, \ngame over. Touch red dots \nto get more rope.", 120, 100 - (height - 200 - player.bodies[6].position.y));
             stroke(255)
             line(120, 82.5 - (height - 200 - player.bodies[6].position.y), 47.5, 55 - (height - 200 - player.bodies[6].position.y));
         }
