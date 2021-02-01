@@ -121,7 +121,7 @@ function Gear({ x, y, spokeCount = 4, size, speed = 0.01 }) {
         draw() {
             var gravity = engine.world.gravity;
             //Body.applyForce(center, center.position, { x: center.mass * gravity.x, y: center.mass * gravity.y })
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < (localProxy.gears === "neon" ? 5 : 0); i++) {
                 stroke(...color.concat(125 - 12.5 * 2 * i));
                 strokeWeight(10);
                 noFill();

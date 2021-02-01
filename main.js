@@ -256,6 +256,15 @@ if (!localProxy.selectedSquare) {
 if (!localProxy.graphics) {
     localProxy.graphics = "good";
 }
+if (!localProxy.gears) {
+    localProxy.gears = "neon";
+}
+if (!localProxy.boosts) {
+    localProxy.boosts = "neon";
+}
+if (!localProxy.particles) {
+    localProxy.particles = "on";
+}
 let oldPlayerY;
 let oldCollisions;
 const computeDiscount = () => {
@@ -290,6 +299,9 @@ function draw() {
         pixelDensity(2);
     } else if (localProxy.graphics === "fast") {
         pixelDensity(1);
+    }
+    if (localProxy.particles === "off") {
+        emitters.length = 0;
     }
     localProxy.coins = coins;
     background(75 / 2, 68 / 2, 68 / 2);
@@ -391,13 +403,24 @@ function draw() {
                 return;
             }
             noStroke();
-            fill(collectible.color.concat(65));
-            circle(collectible.x, collectible.y, collectible.size * 1.75);
-            fill(collectible.color.concat(125));
-            circle(collectible.x, collectible.y, collectible.size * 1.5);
-            fill(collectible.color.concat(200));
-            circle(collectible.x, collectible.y, collectible.size * 1.25);
-            collectible.draw();
+            if (localProxy.boosts === "neon") {
+                fill(collectible.color.concat(65));
+                circle(collectible.x, collectible.y, collectible.size * 1.75);
+                fill(collectible.color.concat(125));
+                circle(collectible.x, collectible.y, collectible.size * 1.5);
+                fill(collectible.color.concat(200));
+                circle(collectible.x, collectible.y, collectible.size * 1.25);
+            }
+            //collectible.draw();
+            fill(...collectible.color);
+            circle(collectible.x, collectible.y, collectible.size * (localProxy.boosts === "neon" ? 1 : 1.35));
+            if (collectible.color[0] === 255 & collectible.color[1] === 215) {
+                fill(150);
+                textAlign(CENTER);
+                textSize(25);
+                text("$", collectible.x, collectible.y + 8);
+                textSize(50);
+            }
             stroke(255);
             player.bodies.some(body => {
                 if (dist(collectible.x, collectible.y, body.position.x, body.position.y) < (body.circleRadius + collectible.size) / 1.5) {
@@ -789,6 +812,15 @@ settingsIngame.onclick = () => {
             gameState = "start";
             gameChangeTick = 0;
             paused = false;
+            let scoreCounter = playerScore;
+            let coinInterval = setInterval(() => {
+                const fraction = scoreCounter * 0.1;
+                scoreCounter -= fraction;
+                coins += round(fraction / 10);
+                if (scoreCounter < 5) {
+                    clearInterval(coinInterval);
+                }
+            }, 100);
             reset();
             mainMenu();
         }
@@ -1093,12 +1125,54 @@ const settings = () => {
     graphicsButton.style.width = "300px";
     graphicsButton.innerHTML = `Graphics: ${localProxy.graphics === "good" ? "Good" : "Fast"}`;
     graphicsButton.onclick = () => {
-            if (graphicsButton.innerHTML === "Graphics: Good") {
-                graphicsButton.innerHTML = "Graphics: Fast";
-                localProxy.graphics = "fast";
+        if (graphicsButton.innerHTML === "Graphics: Good") {
+            graphicsButton.innerHTML = "Graphics: Fast";
+            localProxy.graphics = "fast";
+        } else {
+            graphicsButton.innerHTML = "Graphics: Good";
+            localProxy.graphics = "good";
+        }
+    }
+    const gearButton = document.createElement("button");
+    gearButton.classList.add("btn");
+    gearButton.style.marginLeft = "350px";
+    gearButton.style.width = "300px";
+    gearButton.innerHTML = `Gears: ${localProxy.gears === "neon" ? "Neon" : "Normal"}`;
+    gearButton.onclick = () => {
+        if (gearButton.innerHTML === "Gears: Neon") {
+            gearButton.innerHTML = "Gears: Normal";
+            localProxy.gears = "normal";
+        } else {
+            gearButton.innerHTML = "Gears: Neon";
+            localProxy.gears = "neon";
+        }
+    }
+    const boostButton = document.createElement("button");
+    boostButton.classList.add("btn");
+    boostButton.style.marginLeft = "350px";
+    boostButton.style.width = "300px";
+    boostButton.innerHTML = `Boosts: ${localProxy.boosts === "neon" ? "Neon" : "Normal"}`;
+    boostButton.onclick = () => {
+        if (boostButton.innerHTML === "Boosts: Neon") {
+            boostButton.innerHTML = "Boosts: Normal";
+            localProxy.boosts = "normal";
+        } else {
+            boostButton.innerHTML = "Boosts: Neon";
+            localProxy.boosts = "neon";
+        }
+    }
+    const particleButton = document.createElement("button");
+    particleButton.classList.add("btn");
+    particleButton.style.marginLeft = "350px";
+    particleButton.style.width = "300px";
+    particleButton.innerHTML = `Particles: ${localProxy.particles === "on" ? "On" : "Off"}`;
+    particleButton.onclick = () => {
+            if (particleButton.innerHTML === "Particles: On") {
+                particleButton.innerHTML = "Particles: Off";
+                localProxy.particles = "off";
             } else {
-                graphicsButton.innerHTML = "Graphics: Good";
-                localProxy.graphics = "good";
+                particleButton.innerHTML = "Particles: On";
+                localProxy.particles = "on";
             }
         }
         //main.innerHTML += `<label style="margin-left:332px">Music Volume:</label>`;
@@ -1117,6 +1191,15 @@ const settings = () => {
     main.appendChild(document.createElement("br"));
     main.appendChild(document.createElement("br"));
     main.appendChild(graphicsButton);
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    main.appendChild(gearButton);
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    main.appendChild(boostButton);
+    main.appendChild(document.createElement("br"));
+    main.appendChild(document.createElement("br"));
+    main.appendChild(particleButton);
     main.appendChild(document.createElement("br"));
     main.appendChild(document.createElement("br"));
     main.appendChild(document.createElement("br"));
